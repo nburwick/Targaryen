@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Song Finder</title>
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <h1>Song Finder</h1>
+  <input type="text" id="songName" placeholder="Enter song name">
+  <input type="text" id="artistName" placeholder="Enter artist name">
+  <button onclick="retrieveToken()">Retrieve Access Token</button>
+  <button onclick="findSong()">Find Song</button>
+
+  <script>
+    var clientId = '5ffe619ae7b54de8a74983f0f7663d19'; // Replace with your actual client ID
+    var redirectUri = 'http://localhost:5500'; // Replace with your actual redirect URI
+
+    function retrieveToken() {
+      // Create a Spotify Web Playback SDK instance
+      var player = new Spotify.Player({
+        name: 'Spotify API Token Retrieval',
+        getOAuthToken: function(callback) {
+          // Perform the authorization flow to obtain the access token
+          var popup = window.open('https://accounts.spotify.com/authorize' +
+            '?client_id=' + clientId +
+            '&redirect_uri=' + encodeURIComponent(redirectUri) +
+            '&response_type=token',
+            'Spotify',
+            'width=400,height=500'
+          );
+
+          // Wait for the redirect URI to be loaded with the access token
+          window.addEventListener('message', function(event) {
+            var hash = JSON.parse(event.data);
+            var accessToken = hash.access_token;
+            popup.close();
+
+            // Print the access token
+            console.log('Access Token: ' + accessToken);
+          }, false);
+        }
+      });
+
+      // Connect to the Spotify Web Playback SDK
+      player.connect();
+    }
+
+    function findSong() {
+      var songName = document.getElementById('songName').value;
+      var artistName = document.getElementById('artistName').value;
+      var accessToken = window.accessToken;
+
+      // Make a GET request to the Spotify API
+      $.ajax({
+        url: 'https://api.spotify.com/v1/search',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken
+        },
+        data: {
+          q: 'track:' + songName + ' artist:' + artistName,
+          type: 'track',
+          limit: 1
+        },
+        success: function(response) {
+          if (response.tracks.items.length > 0) {
+            var track = response.tracks.items[0];
+            var songId = track.id;
+            console.log('Song ID: ' + songId);
+          } else {
+            console.log('Song not found');
+          }
+        },
+        error: function() {
+          console.log('Error occurred while searching for the song');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
