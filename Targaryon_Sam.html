@@ -1,14 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Targaryon Song Recommender</title>
+  <title>Targaryen Song Recommender</title>
+  <style>
+    #headerContainer {
+      position: relative;
+      text-align: center;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    #headerText {
+      position: absolute;
+      top: 9%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    }
+    #imageContainer {
+      max-width: 500px;
+      max-height: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+  </style>
   <script src="https://sdk.scdn.co/spotify-player.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
   <center>
-    <h1>Song Finder</h1>
+    
+    <div id="headerContainer">
+      <h1 id="headerText">Targaryen Song Recommender</h1>
+      <div id="imageContainer"></div>
+    </div>
     <hr>
+
+    <script>
+      function displayImage() {
+        var imageUrl = 'https://www.liveabout.com/thmb/FzxxZgjFWyd3yXCL2C_Pzo0s2TU=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/pop-music-57bce3863df78c87634ea806.jpg';
+  
+        var image = document.createElement('img');
+        image.src = imageUrl;
+        image.alt = 'Pop Music';
+        image.style.maxWidth = '100%';
+        image.style.maxHeight = '100%'
+  
+        // Clear any previous image
+        document.getElementById('imageContainer').innerHTML = '';
+  
+        // Append the image to the image container div
+        document.getElementById('imageContainer').appendChild(image);
+      }
+      displayImage()
+    </script>
 
     <h3>Step 1: API Token Retrieval</h3>
     <p>Click on the following link and retrieve an access token</p>
@@ -29,6 +75,7 @@
     <input type="text" id="songID" placeholder="Enter Song ID">
     <button onclick="getRecommendations()">Get Recommendations!</button>
     <div id="result2"></div>
+
   </center>
 
   <script>
@@ -52,6 +99,7 @@
         //if the API call is successful, return the Song ID or 
         //state that the song was not found.
         success: function(response) {
+          console.log(response)
           if (response.tracks.items.length > 0) {
             var track = response.tracks.items[0];
             var songId = track.id;
