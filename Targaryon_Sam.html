@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Targaryen Song Recommender</title>
+  <style>
+    #headerContainer {
+      position: relative;
+      text-align: center;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    #headerText {
+      position: absolute;
+      top: 9%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6);
+    }
+    #imageContainer {
+      max-width: 500px;
+      max-height: 500px;
+      margin: 0 auto;
+      text-align: center;
+    }
+  </style>
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <center>
+    
+    <div id="headerContainer">
+      <h1 id="headerText">Targaryen Song Recommender</h1>
+      <div id="imageContainer"></div>
+    </div>
+    <hr>
+
+    <script>
+      function displayImage() {
+        var imageUrl = 'https://www.liveabout.com/thmb/FzxxZgjFWyd3yXCL2C_Pzo0s2TU=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/pop-music-57bce3863df78c87634ea806.jpg';
+  
+        var image = document.createElement('img');
+        image.src = imageUrl;
+        image.alt = 'Pop Music';
+        image.style.maxWidth = '100%';
+        image.style.maxHeight = '100%'
+  
+        // Clear any previous image
+        document.getElementById('imageContainer').innerHTML = '';
+  
+        // Append the image to the image container div
+        document.getElementById('imageContainer').appendChild(image);
+      }
+      displayImage()
+    </script>
+
+    <h3>Step 1: API Token Retrieval</h3>
+    <p>Click on the following link and retrieve an access token</p>
+    <p><a href="https://developer.spotify.com/documentation/web-playback-sdk/tutorials/getting-started" target="_blank">Click here to retreive an access token from Spotify</a></p>
+    <hr>
+
+    <h3>Step 2: Song Retrieval</h3>
+    <input type="text" id="songName" placeholder="Enter song name">
+    <input type="text" id="artistName" placeholder="Enter artist name">
+    <input type="text" id="accessToken" placeholder="Enter Spotify Access Token">
+    <button onclick="findSong()">Find Song</button>
+    <p id="result"></p>
+    <hr>
+
+    <h3>Step 3: Get the Recommendation!</h3>
+    <p>Enter the number of recommendations you'd like as a number and the retrieved Song ID to see your recommendations!</p>
+    <input type="text" id="numRecs" placeholder="Enter Number of Recs">
+    <input type="text" id="songID" placeholder="Enter Song ID">
+    <button onclick="getRecommendations()">Get Recommendations!</button>
+    <div id="result2"></div>
+
+  </center>
+
+  <script>
+    function findSong() {
+      //grab the variables from the user input
+      var songName = document.getElementById('songName').value;
+      var artistName = document.getElementById('artistName').value;
+      var accessToken = document.getElementById('accessToken').value;
+
+      // Make a GET request to the Spotify API
+      $.ajax({
+        url: 'https://api.spotify.com/v1/search',
+        headers: {
+          'Authorization': 'Bearer ' + accessToken
+        },
+        data: {
+          q: 'track:' + songName + ' artist:' + artistName,
+          type: 'track',
+          limit: 1
+        },
+        //if the API call is successful, return the Song ID or 
+        //state that the song was not found.
+        success: function(response) {
+          console.log(response)
+          if (response.tracks.items.length > 0) {
+            var track = response.tracks.items[0];
+            var songId = track.id;
+            document.getElementById('result').innerHTML = 'Song ID: ' + songId;
+          } else {
+            document.getElementById('result').innerHTML = 'Song not found';
+          }
+        },
+        //If the API call is NOT successful, tell the user to verify the
+        //API Token was entered correctly.
+        error: function() {
+          document.getElementById('result').innerHTML = 'Error occurred. Try getting another access token.';
+        }
+      });
+    }
+  </script>
+
+<script>
+  function getRecommendations() {
+    var songId = document.getElementById('songID').value;
+    var accessToken = document.getElementById('accessToken').value;
+    var numRecs = document.getElementById('numRecs').value;
+
+    // Make a GET request to the Spotify API
+    $.ajax({
+        url: 'https://api.spotify.com/v1/audio-features/' + songId,
+        headers: {
+          'Authorization': 'Bearer ' + accessToken
+        },
+        success: function(response) {
+          // Create a list of the audio features
+          var audioFeaturesList = document.createElement('ul');
+
+          // Iterate over each audio feature and create a list item for it
+          for (var key in response) {
+            var listItem = document.createElement('li');
+            listItem.textContent = key + ': ' + response[key];
+            audioFeaturesList.appendChild(listItem);
+          }
+
+          // Clear any previous results
+          document.getElementById('result2').innerHTML = '';
+
+          // Append the audio features list to the result div
+          document.getElementById('result2').appendChild(audioFeaturesList);
+        },
+        error: function() {
+          document.getElementById('result2').textContent = 'Error occurred while retrieving audio features';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
