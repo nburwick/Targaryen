@@ -39,6 +39,9 @@ def songRecommender(songID, traits_dictionary, num_recs):
   #set up dataframe with traits
   traitsDF = pd.DataFrame(traits_dictionary)
 
+  #convert num_recs to int
+  num_recs = int(num_recs)
+
 
   #provide links to models for loading through iteration later
   links = ["genreModels/animeModel.h5", "genreModels/chillModel.h5","genreModels/emoModel.h5","genreModels/grungeModel.h5",
@@ -82,8 +85,8 @@ def songRecommender(songID, traits_dictionary, num_recs):
     filtered_songsDF = songsDF
 
   filtered_songsDF = filtered_songsDF.loc[filtered_songsDF['track_id']!=songID]
-  recommendations = filtered_songsDF.sort_values(['popularity'], ascending=False)[:num_recs]
-  return recommendations.to_json()
+  recommendations = filtered_songsDF.sort_values(['popularity'], ascending=False)
+  return recommendations[['track_name','artists']].head(num_recs)
 
 
 

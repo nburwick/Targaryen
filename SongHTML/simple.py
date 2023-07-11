@@ -205,7 +205,7 @@ def getDataset(songName, recSongs):
     
 
     # convert predicted songs into a list
-    predictedSongs = predictedDF3['track_name'].tolist()
+    predictedSongs = predictedDF3[['track_name','artists']]
 
 
     return predictedSongs
