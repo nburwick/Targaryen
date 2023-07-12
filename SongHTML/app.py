@@ -1,23 +1,45 @@
 from flask import Flask, render_template
 from flask import request
-import simple  # assuming you've converted your notebook to a .py file
-import songRecommender
-import os
+from flask_cors import CORS
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-
-cid = "5ffe619ae7b54de8a74983f0f7663d19"
-secret = "c0610f5f0ca04b6d884d9495ce0073c6"
-uri = "http://localhost:8080"
-
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+import pandas as pd
+from songRecommender import songRecommender
+import os
+    
+# Set Environment
+cid = "99b3295c313d45088cb4f8fe0f8dbb81"
+secret = "d6ef161517e24039bab481b7b0b99732"
+sp_uri = "http://localhost:8080"
 os.environ['SPOTIPY_CLIENT_ID'] = cid
 os.environ['SPOTIPY_CLIENT_SECRET'] = secret
-os.environ['SPOTIPY_REDIRECT_URI'] = uri
+os.environ['SPOTIPY_REDIRECT_URI'] = sp_uri
 
-client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
-spotify = spotipy.Spotify(auth_manager=client_credentials_manager, retries=3, requests_timeout=3)
+# Create mongo
+mdb_uri = 'mongodb+srv://nburwick:Swim_Fast01@cluster0.nvujnf4.mongodb.net/?retryWrites=true&w=majority'
+server = ServerApi('1')
+# Create a new client and connect to the server
+mongo = MongoClient(mdb_uri, server_api=server)
+database = mongo['targ_data']
+targ_songs = database['song_data']
+songs = list(targ_songs.find({}))
 
+#Define DataBase Search
+def in_mongo(track_id):
+    try:    
+        result = list(targ_songs.find({'track_id' : track_id}))
+        if result != 0:
+            return True
+        else:
+            return False
+    except:
+        return False
+
+#Initiate App
 app = Flask(__name__)
+CORS(app)
 
 #this is loaded when page is loaded
 @app.route('/')
@@ -31,69 +53,52 @@ def home():
 #this is loaded when user enter song name, etc
 @app.route('/submit', methods=['POST'])
 def submit():
-    # 'songName' is the 'id' value
+    #Initiate Spotify Client
+    client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
+    spotify = spotipy.Spotify(auth_manager=client_credentials_manager, retries=1, requests_timeout=3)
+
+    # Capture user input
     songName = request.form.get('songName')
-
     artistName = request.form.get('artist')
-
-    print(artistName)
-
-    result = spotify.search(f'track:{songName} artist:{artistName}')
-    songID = result['tracks']['items'][0]['id']
-    pop = result['tracks']['items'][0]['popularity']
-
-    print(songID)
-
-    traits_dictionary = spotify.audio_features(songID)[0]
-    traits_dictionary['popularity'] = pop
-
-    delete_list = ['analysis_url','id','duration_ms','track_href','type','uri']
-    for trait in delete_list:
-        del traits_dictionary[trait]
-
-    #print(traits_dictionary)
-    # {
-    # 'popularity': [100],
-    # 'explicit': [False],
-    # 'danceability': [0.714],
-    # 'energy': [0.472],
-    # 'key': [2],
-    # 'loudness':[-7.375],
-    # 'mode':1,
-    # 'speechiness':[0.0864],
-    # 'acousticness': [0.013],
-    # 'instrumentalness':[0.00000451],
-    # 'liveness':[0.266],
-    # 'valence':[0.238],
-    # 'tempo':[131.121],
-    # 'time_signature':[4]
-    # } 
-
-#     {'acousticness': 0.013,
-#  'analysis_url': 'https://api.spotify.com/v1/audio-analysis/3nqQXoyQOWXiESFLlDF1hG',
-#  'danceability': 0.714,
-#  'duration_ms': 156943,
-#  'energy': 0.472,
-#  'id': '3nqQXoyQOWXiESFLlDF1hG',
-#  'instrumentalness': 4.51e-06,
-#  'key': 2,
-#  'liveness': 0.266,
-#  'loudness': -7.375,
-#  'mode': 1,
-#  'speechiness': 0.0864,
-#  'tempo': 131.121,
-#  'time_signature': 4,
-#  'track_href': 'https://api.spotify.com/v1/tracks/3nqQXoyQOWXiESFLlDF1hG',
-#  'type': 'audio_features',
-#  'uri': 'spotify:track:3nqQXoyQOWXiESFLlDF1hG',
-#  'valence': 0.238}
-
     recSongs = request.form.get('recommendation')
 
+    # Search Spotify for song
+    result = spotify.search(f'track:{songName} artist:{artistName}')
+    
+    # Get Attributes
+    songID = result['tracks']['items'][0]['id']
+    explicit = result['tracks']['items'][0]['explicit']
+    pop = result['tracks']['items'][0]['popularity']
+    name = result['tracks']['items'][0]['name']
+    track_art = result['tracks']['items'][0]['artists'][0]['name']
+    url = result['tracks']['items'][0]['external_urls']['spotify']
+    
+    # Test MongoDB for DataPoint
+    if in_mongo(songID) == False:
+        # print("DB Check returned False")
+        traits_dictionary = spotify.audio_features(songID)[0]
+        print(traits_dictionary)
+        traits_dictionary['popularity'] = pop
+        traits_dictionary['explicit'] = explicit
+        traits_dictionary['track_name'] = name
+        traits_dictionary['track_url'] = url
+        targ_songs.insert_one(traits_dictionary)
+        delete_list = ['analysis_url','id','duration_ms','track_href','type','uri', 'track_name']
+        for trait in delete_list:
+            del traits_dictionary[trait]
+    else:
+        # print("DB Check returned True")
+        traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
+    
+    # vectorize values for Machine Learning 
+    for trait in traits_dictionary.keys():
+        traits_dictionary[trait] = [traits_dictionary[trait]]
+
+
     # Now, pass song name and recommendation to python function    
-    result = songRecommender.songRecommender(songID, traits_dictionary, recSongs)  # Call the function from your notebook
-    return render_template('songs.html', tables=[result.to_html(classes='data',header='true', index=False, justify='left')])  # Pass the result to your HTML file
+    result = songRecommender(songID, songs, traits_dictionary, recSongs)  # Call the function from your notebook
+    return render_template('songs.html', tables=[result.to_html(classes='data',header='true', index=False, justify='left', escape=False)])  # Pass the result to your HTML file
     
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=8000, threaded=True)
