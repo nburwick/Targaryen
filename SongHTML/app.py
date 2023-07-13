@@ -29,9 +29,9 @@ targ_songs = database['song_data']
 songs = list(targ_songs.find({}))
 
 # Testing App
-# file = pd.read_json(os.path.join('..','Outputs','cleaned_data_2.json'))
-# songs = file.dropna(subset='track_url').drop(columns=['track_genre', 'album_name'])
-# songs = json.loads(songs.to_json(orient='records'))
+file = pd.read_json(os.path.join('..','Outputs','cleaned_data_2.json'))
+songs = file.dropna(subset='track_url').drop(columns=['track_genre', 'album_name'])
+songs = json.loads(songs.to_json(orient='records'))
 
 #Define DataBase Search
 def in_mongo(track_id):
@@ -72,7 +72,8 @@ def submit():
     songName = request.form.get('songName')
     artistName = request.form.get('artist')
     recSongs = request.form.get('recommendation')
-
+    explicit_filter = request.form['choice']
+    print(explicit_filter)
     # Search Spotify for song
     result = spotify.search(f'track:{songName} artist:{artistName}')
     
@@ -85,7 +86,7 @@ def submit():
     url = result['tracks']['items'][0]['external_urls']['spotify']
     
     # Test MongoDB for DataPoint
-    if in_mongo(songID) == False:
+    if in_mongo(songID) == True:
         # in_mongo returned False Add Song to MongoDB with Attributes
         traits_dictionary = spotify.audio_features(songID)[0]
         traits_dictionary['popularity'] = pop
@@ -107,22 +108,22 @@ def submit():
             del traits_dictionary[trait]
             
         # Push Song into MongoDB to "Smarten" Model    
-        targ_songs.insert_one(traits_dictionary)
+        # targ_songs.insert_one(traits_dictionary)
 
-    else:
+    # else:
         # in_mongo returned True extract data from MongoDB
-        traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
+        # traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
     
     # vectorize values for Machine Learning 
     for trait in traits_dictionary.keys():
         traits_dictionary[trait] = [traits_dictionary[trait]]
 
     # Now, pass songID, Song DB, Song Attributes, and number of recommendations to ML Model Function   
-    result = songRecommender(songID, songs, traits_dictionary, recSongs)
+    result = songRecommender(songID, songs, traits_dictionary, recSongs, explicit_filter)
     
     # Return Recommended Songs as Pandas DataFrame
     return render_template('songs.html', tables=[result.to_html(classes='mystyle',header='true', 
-                                                                index=False, justify='left', escape=False)])
+                                                                index=True, justify='left', escape=False)])
     
 # Run Application
 if __name__ == '__main__':
