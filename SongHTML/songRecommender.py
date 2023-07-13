@@ -27,7 +27,7 @@ def songRecommender(track_id, mongoDB, traits_dictionary, num_recs):
     original_df = original_df[original_df['track_id'] != track_id].reset_index(drop=True)
 
     # Extract Song Qualities
-    song_q = original_df.drop(columns=['track_id', 'artists', 'album_name', 'track_name', 'track_genre', 'duration_ms', 'track_url', 'popularity', 'explicit','_id']).dropna().reset_index(drop=True)
+    song_q = original_df.drop(columns=['track_id', 'artists', 'track_name', 'duration_ms', 'track_url', 'popularity', 'explicit','_id'], errors='ignore').dropna().reset_index(drop=True)
     
     # print(song_q.info())
 
@@ -37,7 +37,7 @@ def songRecommender(track_id, mongoDB, traits_dictionary, num_recs):
 
     # Convert Searched Song Traits
     test = pd.DataFrame(traits_dictionary)
-    test = test.drop(columns=['track_id', 'artists', 'album_name', 'track_name', 'track_genre', 'duration_ms', 'track_url', 'popularity', 'explicit', '_id'])
+    test = test.drop(columns=['track_id', 'artists', 'track_name', 'duration_ms', 'track_url', 'popularity', 'explicit', '_id'], errors='ignore')
     
     # Find Similar Songs from KNN Model
     result = knn.kneighbors(test)[1].tolist()[0]
@@ -50,8 +50,8 @@ def songRecommender(track_id, mongoDB, traits_dictionary, num_recs):
       link = track['track_url']
       name = track['track_name']
       result_df.loc[index,'track_name'] = f'<a href={link}>{name}</a>'
-      arts = track['artists'].strip("][").split(",")
+      arts = track['artists'].strip("][").split(", ")
       result_df.loc[index, 'artists'] = ", ".join(arts).replace("'","")
     
-    result_df = result_df[['track_name', 'artists', 'track_genre']]
+    result_df = result_df[['track_name', 'artists']].reset_index(drop=True)
     return result_df

@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from flask import request
 from flask_cors import CORS
 import spotipy
@@ -8,17 +8,19 @@ from pymongo.server_api import ServerApi
 import pandas as pd
 from songRecommender import songRecommender
 import os
+from spotify_creds import cid, secret, sp_uri, mdb_uri
+import json
     
 # Set Environment
-cid = "99b3295c313d45088cb4f8fe0f8dbb81"
-secret = "d6ef161517e24039bab481b7b0b99732"
-sp_uri = "http://localhost:8080"
+cid = cid
+secret = secret
+sp_uri = sp_uri
 os.environ['SPOTIPY_CLIENT_ID'] = cid
 os.environ['SPOTIPY_CLIENT_SECRET'] = secret
 os.environ['SPOTIPY_REDIRECT_URI'] = sp_uri
 
 # Create mongo
-mdb_uri = 'mongodb+srv://nburwick:Swim_Fast01@cluster0.nvujnf4.mongodb.net/?retryWrites=true&w=majority'
+mdb_uri = mdb_uri
 server = ServerApi('1')
 # Create a new client and connect to the server
 mongo = MongoClient(mdb_uri, server_api=server)
@@ -26,24 +28,33 @@ database = mongo['targ_data']
 targ_songs = database['song_data']
 songs = list(targ_songs.find({}))
 
+# Testing App
+# file = pd.read_json(os.path.join('..','Outputs','cleaned_data_2.json'))
+# songs = file.dropna(subset='track_url').drop(columns=['track_genre', 'album_name'])
+# songs = json.loads(songs.to_json(orient='records'))
+
 #Define DataBase Search
 def in_mongo(track_id):
     try:    
         result = list(targ_songs.find({'track_id' : track_id}))
-        if result != 0:
+        if result != 0 or pd.isnull(result) == False:
             return True
         else:
             return False
     except:
         return False
 
+# set directory
+app_dir = os.path.abspath(os.path.join(__file__, os.pardir, os.pardir))
+
 #Initiate App
-app = Flask(__name__)
+app = Flask(__name__, static_folder=f"{app_dir}")
 CORS(app)
 
 #this is loaded when page is loaded
 @app.route('/')
 def home():
+    print(len(songs))
    # result = simple.getDataset('ABC')  # Call the function from your notebook
     #return render_template('songs.html', result=result) 
     
@@ -65,7 +76,7 @@ def submit():
     # Search Spotify for song
     result = spotify.search(f'track:{songName} artist:{artistName}')
     
-    # Get Attributes
+    # Get Attributes To upload to MongoDB if a new track
     songID = result['tracks']['items'][0]['id']
     explicit = result['tracks']['items'][0]['explicit']
     pop = result['tracks']['items'][0]['popularity']
@@ -75,30 +86,44 @@ def submit():
     
     # Test MongoDB for DataPoint
     if in_mongo(songID) == False:
-        # print("DB Check returned False")
+        # in_mongo returned False Add Song to MongoDB with Attributes
         traits_dictionary = spotify.audio_features(songID)[0]
-        print(traits_dictionary)
         traits_dictionary['popularity'] = pop
         traits_dictionary['explicit'] = explicit
         traits_dictionary['track_name'] = name
         traits_dictionary['track_url'] = url
-        targ_songs.insert_one(traits_dictionary)
-        delete_list = ['analysis_url','id','duration_ms','track_href','type','uri', 'track_name']
+        traits_dictionary['artists'] = track_art
+        traits_dictionary['track_id'] = songID
+        keep_traits = ['track_id', 'artists', 'track_name',
+                       'popularity', 'duration_ms', 'explicit', 'danceability',
+                       'energy', 'key', 'loudness', 'mode','speechiness',
+                       'acousticness','instrumentalness','liveness','valence',
+                       'tempo','time_signature']
+        
+        # Establish Traits to remove from API Response for Pu
+        dict_traits = traits_dictionary.keys()
+        delete_list = set(dict_traits) - set(keep_traits)
         for trait in delete_list:
             del traits_dictionary[trait]
+            
+        # Push Song into MongoDB to "Smarten" Model    
+        targ_songs.insert_one(traits_dictionary)
+
     else:
-        # print("DB Check returned True")
+        # in_mongo returned True extract data from MongoDB
         traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
     
     # vectorize values for Machine Learning 
     for trait in traits_dictionary.keys():
         traits_dictionary[trait] = [traits_dictionary[trait]]
 
-
-    # Now, pass song name and recommendation to python function    
-    result = songRecommender(songID, songs, traits_dictionary, recSongs)  # Call the function from your notebook
-    return render_template('songs.html', tables=[result.to_html(classes='data',header='true', index=False, justify='left', escape=False)])  # Pass the result to your HTML file
+    # Now, pass songID, Song DB, Song Attributes, and number of recommendations to ML Model Function   
+    result = songRecommender(songID, songs, traits_dictionary, recSongs)
     
-
+    # Return Recommended Songs as Pandas DataFrame
+    return render_template('songs.html', tables=[result.to_html(classes='mystyle',header='true', 
+                                                                index=False, justify='left', escape=False)])
+    
+# Run Application
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000, threaded=True)
