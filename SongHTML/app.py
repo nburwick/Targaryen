@@ -28,11 +28,6 @@ database = mongo['targ_data']
 targ_songs = database['song_data']
 songs = list(targ_songs.find({}))
 
-# Testing App
-file = pd.read_json(os.path.join('..','Outputs','cleaned_data_2.json'))
-songs = file.dropna(subset='track_url').drop(columns=['track_genre', 'album_name'])
-songs = json.loads(songs.to_json(orient='records'))
-
 #Define DataBase Search
 def in_mongo(track_id):
     try:    
@@ -86,7 +81,7 @@ def submit():
     url = result['tracks']['items'][0]['external_urls']['spotify']
     
     # Test MongoDB for DataPoint
-    if in_mongo(songID) == True:
+    if in_mongo(songID) == False:
         # in_mongo returned False Add Song to MongoDB with Attributes
         traits_dictionary = spotify.audio_features(songID)[0]
         traits_dictionary['popularity'] = pop
@@ -101,18 +96,17 @@ def submit():
                        'acousticness','instrumentalness','liveness','valence',
                        'tempo','time_signature']
         
-        # Establish Traits to remove from API Response for Pu
-        dict_traits = traits_dictionary.keys()
-        delete_list = set(dict_traits) - set(keep_traits)
+        # Establish Traits to remove from API Response for Push
+        delete_list = set(traits_dictionary.keys()) - set(keep_traits)
         for trait in delete_list:
             del traits_dictionary[trait]
             
         # Push Song into MongoDB to "Smarten" Model    
-        # targ_songs.insert_one(traits_dictionary)
+        targ_songs.insert_one(traits_dictionary)
 
-    # else:
+    else:
         # in_mongo returned True extract data from MongoDB
-        # traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
+        traits_dictionary = list(targ_songs.find({'track_id': songID}))[0]
     
     # vectorize values for Machine Learning 
     for trait in traits_dictionary.keys():

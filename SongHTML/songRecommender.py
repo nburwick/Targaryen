@@ -22,12 +22,11 @@ def songRecommender(track_id, mongoDB, traits_dictionary, num_recs, explicit):
     if num_recs == "" or num_recs == None:
       num_recs = 10
     
-    # Convert DataBased Songs into a DataFram
+    # Convert DataBased Songs into a DataFrame
     original_df = pd.json_normalize(mongoDB)
     original_df = original_df[original_df['track_id'] != track_id].reset_index(drop=True)
     
-    
-    
+    # Filter Explicit?
     if explicit == "0":
       original_df = original_df[~original_df['explicit']].reset_index(drop=True)
 
