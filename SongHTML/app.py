@@ -49,10 +49,6 @@ CORS(app)
 #this is loaded when page is loaded
 @app.route('/')
 def home():
-    print(len(songs))
-   # result = simple.getDataset('ABC')  # Call the function from your notebook
-    #return render_template('songs.html', result=result) 
-    
     #use this for just displaying page that does nothing
     return render_template('songs.html')
 
