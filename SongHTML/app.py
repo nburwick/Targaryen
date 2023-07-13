@@ -73,7 +73,7 @@ def submit():
     artistName = request.form.get('artist')
     recSongs = request.form.get('recommendation')
     explicit_filter = request.form['choice']
-    print(explicit_filter)
+
     # Search Spotify for song
     result = spotify.search(f'track:{songName} artist:{artistName}')
     

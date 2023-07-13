@@ -26,12 +26,10 @@ def songRecommender(track_id, mongoDB, traits_dictionary, num_recs, explicit):
     original_df = pd.json_normalize(mongoDB)
     original_df = original_df[original_df['track_id'] != track_id].reset_index(drop=True)
     
-    print(original_df.shape[0])
     
-    if explicit == 0:
-      print("D) NOT INCLUDE EXPLICIT SONGS")
-      original_df = original_df[original_df['explicit'] == "false"].reset_index(drop=True)
-      print(original_df.shape[0])
+    
+    if explicit == "0":
+      original_df = original_df[~original_df['explicit']].reset_index(drop=True)
 
     # Extract Song Qualities
     song_q = original_df.drop(columns=['track_id', 'artists', 'track_name', 'duration_ms', 'track_url', 'popularity', 'explicit','_id'], errors='ignore').dropna().reset_index(drop=True)

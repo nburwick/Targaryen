@@ -14,6 +14,11 @@
         object-fit: contain;
       }
 
+      input[type='range']::-webkit-slider-runnable-track {
+        width: 80px;
+        color: #7FFF00;
+      }
+      
       .mystyle {
         font-size: 11pt; 
         font-family: Arial;
@@ -54,7 +59,7 @@
           <label class="screen-reader-only" for="choice"><br>Include Explicit Songs?: <br></label>
           
           <span aria-hidden="true" value="0">No</span>
-          <input type="range" min="0" max="1" name="choice">
+          <input type="range" min="0" max="1" id='slider' name="choice">
           <span aria-hidden="false" value="1">Yes</span>
         <br>
         <br>
