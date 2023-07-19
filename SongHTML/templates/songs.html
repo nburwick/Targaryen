@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SongVue</title>
+    <link rel= "shortcut icon" href="{{url_for('static',filename='Targaryen.ico')}}">
+    <style>
+
+      
+      #imageContainer {
+        width: 100%%;
+        height: 33%%;
+      }
+      img {
+        object-fit: contain;
+      }
+
+      input[type='range']::-webkit-slider-runnable-track {
+        width: 80px;
+        color: #7FFF00;
+      }
+      
+      .mystyle {
+        font-size: 11pt; 
+        font-family: Arial;
+        border-collapse: collapse; 
+        border: 1px solid silver;
+    
+      }
+    
+      .mystyle td, th {
+          padding: 5px;
+      }
+      
+      .mystyle tr:nth-child(even) {
+          background: #E0E0E0;
+      }
+      
+      .mystyle tr:hover {
+          background: silver;
+          cursor: pointer;
+      }
+    </style>
+  </head>
+<body>
+  <center>
+      <div id="imageContainer">
+        <img src="{{url_for('static',filename='Targaryen.png')}}">
+      </div>
+    <hr>
+    <form action="/submit" method="post">
+        <label for="songName">Enter Song Name:</label><br>
+        <input type="text" id="songName" name="songName">
+        <br>
+        <br>
+        <label for="artist">Enter Artist Name:</label><br>
+        <input type="text" id="artist" name="artist"><br>
+        <br>
+
+          <label class="screen-reader-only" for="choice"><br>Include Explicit Songs?: <br></label>
+          
+          <span aria-hidden="true" value="0">No</span>
+          <input type="range" min="0" max="1" id='slider' name="choice" value="0">
+          <span aria-hidden="false" value="1">Yes</span>
+        <br>
+        <br>
+        <label for="recommendation">Number of Recommendations (Optional):</label><br>
+        <input type="text" id="recommendation" name="recommendation"><br>
+        <input type="submit" value="Submit">
+      </form>
+<<<<<<< HEAD
+      <body id='search'>
+        {%for search in search%}
+        {{ search|safe }}
+        {% endfor %}
+      </body>
+
+  <h1>SongVue Recommendations</h1>
+  
+=======
+  <h1>SongVue Recommendations</h1>
+>>>>>>> e3dce1ed9c6d71ad67025bd28c561c3dfadafaed
+  <body id="table">
+    {% for table in tables %}
+    {{ table|safe }}
+    {% endfor %}
+  </body>
+  </center>
+</body>
+</html>
